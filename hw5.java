@@ -1,10 +1,10 @@
-/* Name:
+/* Name:  
 
-   UID:
+   UID:   
 
    Others With Whom I Discussed Things:
 
-   Other Resources I Consulted:
+   Other Resources I Consulted: 
    
 */
 
@@ -38,13 +38,21 @@ class MirrorTask extends RecursiveTask< RGB[] > {
 	private int low, // inclusive
 				high; // exclusive
 	private int width;
-	private final int SEQUENTIAL_CUTOFF = 10000;
+	private int SEQUENTIAL_CUTOFF;
 
     public MirrorTask(RGB[] a, int l, int h, int w) {
     	this.originalPixels = a;
     	this.low = l;
     	this.high = h;
     	this.width = w;
+    	SEQUENTIAL_CUTOFF =  20 * width;
+    	// width:       ~1.4 sec
+    	// 2 * width:   ~1 sec
+    	// 3 * width:   ~0.8 sec
+    	// 4 * width:   ~0.7 sec
+    	// 5 * width:   ~0.57 sec
+    	// 6 * width:   ~0.6 sec
+    	// 20 * width:  ~0.45 sec
     }
 
     public RGB[] compute() {
@@ -89,7 +97,8 @@ class GaussianTask extends RecursiveTask< RGB[] > {
 	private int width, height;
 	private int radius;
 	private double sigma;
-	private final int SEQUENTIAL_CUTOFF = 10000;
+	//private final int SEQUENTIAL_CUTOFF = 10000;
+	private int SEQUENTIAL_CUTOFF;
 
     public GaussianTask(RGB[] a, int l, int hi, int w, int he, int r, double s) {
     	this.originalPixels = a;
@@ -99,6 +108,14 @@ class GaussianTask extends RecursiveTask< RGB[] > {
     	this.height = he;
     	this.radius = r;
     	this.sigma = s;
+    	SEQUENTIAL_CUTOFF = 20 * width;
+    	// (r = 20)
+    	// 1 * width:    ~3.4 sec
+    	// 2 * width:    ~3.2 sec
+    	// 3 * width:    ~3.0 sec
+    	// 5 * width:    ~2.8 sec
+    	// 7 * width:    ~2.8 sec 
+    	// 20 * width:   ~2.67 sec
     }
 
     
@@ -244,18 +261,6 @@ class PPMImage {
 					rgb.B = this.maxColorVal - rgb.B;
 				});
 
-/*
-		RGB[] testRGB = new RGB[pixels.length];
-		System.out.println("Negate");
-		for(int r = 0; r < height; r++){
-			for(int c = 0; c < width; c++) {
-				int index = r*width + c;
-				System.out.print(negatePixels[index] + " ");
-			}
-			System.out.println(" ");
-		}*/
-
-
 		return new PPMImage(width, height, maxColorVal, negatePixels);
     }
 
@@ -275,39 +280,13 @@ class PPMImage {
 					rgb.B = rgb.R;
 				});
 
-/*
-		RGB[] testRGB = new RGB[pixels.length];
-		System.out.println("Grey");
-		for(int r = 0; r < height; r++){
-			for(int c = 0; c < width; c++) {
-				int index = r*width + c;
-				System.out.print(greyPixels[index] + " ");
-			}
-			System.out.println(" ");
-		}*/
-
-
 		return new PPMImage(width, height, maxColorVal, greyPixels);
     }    
     
 	// implement using Java's Fork/Join library
     public PPMImage mirrorImage() {
 		MirrorTask newPixels = new MirrorTask(pixels, 0, pixels.length, width);
-
 		RGB[] mirrorPixels = newPixels.compute();
-
-/*
-		RGB[] testRGB = new RGB[pixels.length];
-		System.out.println("mirror");
-		for(int r = 0; r < height; r++){
-			for(int c = 0; c < width; c++) {
-				int index = r*width + c;
-				System.out.print(mirrorPixels[index] + " ");
-			}
-			System.out.println(" ");
-		}*/
-
-
 		return new PPMImage(width, height, maxColorVal, mirrorPixels);
     }
 
@@ -356,17 +335,6 @@ class PPMImage {
 						mirrorRGB[i] = toRGB(mirrorInt[i]);
 					});
 
-/*
-		RGB[] testRGB = new RGB[pixels.length];
-		System.out.println("mirror2");
-		for(int r = 0; r < height; r++){
-			for(int c = 0; c < width; c++) {
-				int index = r*width + c;
-				System.out.print(mirrorRGB[index] + " ");
-			}
-			System.out.println(" ");
-		}*/
-			
 		return new PPMImage(width, height, maxColorVal, mirrorRGB);
     }
 
@@ -374,22 +342,8 @@ class PPMImage {
     public PPMImage gaussianBlur(int radius, double sigma) {
 		GaussianTask newPixels = new GaussianTask(pixels, 0, pixels.length, width, height, radius, sigma);
 		RGB[] gaussianPixels = newPixels.compute();
-
-/*
-		RGB[] testRGB = new RGB[pixels.length];
-		
-		System.out.println("Gaussian");
-		for(int r = 0; r < height; r++){
-			for(int c = 0; c < width; c++) {
-				int index = r*width + c;
-				System.out.print(gaussianPixels[index] + " ");
-			}
-			System.out.println(" ");
-		}*/
-
 		return new PPMImage(width, height, maxColorVal, gaussianPixels);
     }
-
 }
 
 // code for creating a Gaussian filter
@@ -421,6 +375,8 @@ class Gaussian {
     }
 }
 
+/*
+// Test
 class Main {
 	public static void main(String[] args) throws FileNotFoundException, IOException {
 		PPMImage image = new PPMImage("florence.ppm");
@@ -436,38 +392,12 @@ class Main {
 		PPMImage mirror2 = image.mirrorImage2();
 		mirror2.toFile("florence_mirror2.ppm");
 	
-		int r = 3;
-		double sigma = 2.0;  
-		PPMImage gaussian = image.gaussianBlur(r, sigma);
-		gaussian.toFile("florence_gaussian.ppm"); 
-
-/*
-		// Test image
-		int width = 4;
-		int height = 4;
-		RGB[] testRGB = new RGB[16];
-		System.out.println("Original");
-		for(int r = 0; r < height; r++){
-			for(int c = 0; c < width; c++) {
-				int index = r*width + c;
-				testRGB[index] = new RGB(index*10+11, index*10+22, index*10+33);
-				System.out.print(testRGB[index] + " ");
-			}
-			System.out.println(" ");
-		}
-
-		PPMImage imageTest = new PPMImage(width, height, 255, testRGB);
-		PPMImage testNegate = imageTest.negate();
-		PPMImage testGrey = imageTest.greyscale();
-		PPMImage testMirror = imageTest.mirrorImage();
-		PPMImage testMirror2 = imageTest.mirrorImage2();
 		int r = 20;
 		double sigma = 2.0;  
-		PPMImage testGaussian = imageTest.gaussianBlur(r, sigma);*/
-
-
-		
+		PPMImage gaussian = image.gaussianBlur(r, sigma);
+		gaussian.toFile("florence_gaussian.ppm"); 	
 	}
 
-}
+}*/
+
 
