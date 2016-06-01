@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+lang="en"><head><title>Homework 5</title>
+</head>
+
+
+<body>
+
+<h1>Homework 5: Parallel Image Processing</h1>
+
+<img width="25%" src="http://www.cs.ucla.edu/~todd/tmp/florence.jpg">
+<img width="25%" src="http://www.cs.ucla.edu/~todd/tmp/florenceNeg.jpg">
+<img width="25%" src="http://www.cs.ucla.edu/~todd/tmp/florenceGrey.jpg">
+<img width="25%" src="http://www.cs.ucla.edu/~todd/tmp/florenceMirror.jpg">
+<img width="25%" src="http://www.cs.ucla.edu/~todd/tmp/florenceBlur.jpg">
+
+<p>
+<small>Original image of Sunset over Florence (the top-left image above)
+by http://www.flickr.com/people/sherseydc/ (http://flickr.com/photos/sherseydc/2954982676/) [CC-BY-SA-1.0 (http://creativecommons.org/licenses/by-sa/1.0) or CC-BY-2.0 (http://creativecommons.org/licenses/by/2.0)], via Wikimedia Commons</small>
+
+<h2>Due Monday, May 23 at 11:30pm</h2>
+<h3>Turn in your homework via the course web page as an updated version of the <tt>hw5.java</tt>
+text file that I have provided.</h3> 
+
+<h3>Make sure the file can be successfully compiled with <tt>javac</tt>.  There should be <i>no compilation errors or warnings</i>;
+if not you get an automatic 0 for the homework!</h3>
+
+<h3>Recall the CS131 Academic Honesty Policy!  You must list whom you
+discussed the assignment with at the top of your assignment, and also what
+other resources you used.</h3>
+
+
+<p>Processing large images can quickly become computation-intensive.  Fortunately, many image transformations are naturally parallelizable, since each pixel (or groups of a small number of pixels) can often be processed independently.  In this homework you will use Java streams and the Java fork-join framework for this purpose.  
+You need to use Java version 8, which is the latest version.  It is installed on the SEAS machines in <tt>/usr/local/cs/bin</tt>, and you can download it for your platform
+<a href="https://java.com/en/download">here</a>.
+
+<p>As usual, good style
+matters.  <b>Here are the rules:</b>
+ <ul>
+   <li><b>Do not modify the names of any types, classes, instance variables, and methods that our code defines in <tt>hw5.java</tt>.  We are relying on them for testing purposes; your code will get no credit in cases where the test script can't find what it's looking for.</b>
+ <li><i>Never</i> use type-unsafe features
+of Java, like casts and the <tt>instanceof</tt> expression.  Similarly, never build your own version of <tt>instanceof</tt>, such as a method that returns <tt>true</tt> if an object has a particular class.
+If you ever need
+   to figure out the class of some object, then your design is not as
+   object-oriented as it should be. </li>
+<li>You may use any number of helper classes and methods that you require.</li>
+</ul>
+
+A few other tips: <ul>
+  <li>You will find the <a href="http://docs.oracle.com/javase/8/docs/api">Java API Documentation</a> useful.
+  There you can find information on the various classes and interfaces
+  in Java's stream and fork-join libraries.  You may
+  also find the <tt>Math</tt> class to provide useful functionality.</li>
+<li> Write comments where useful to tell the
+reader what's going on.</li>
+<li> Test your functions carefully: eye-balling the results on actual images is not sufficient. I encourage you to write your own test cases:  craft some small image files (in the form of instances of the class <tt>PPMImage</tt> -- see below), and check that each transformation produces the expected output <tt>PPMImage</tt> objects.
+</ul>
+
+<p>We will be manipulating images in <tt>ppm</tt> format, which is a simple representation.  Some image viewing applications can
+directly display <tt>ppm</tt> files, including the Aquamacs text editor on Mac OS X.
+However, many image-viewing
+applications require that the image first be converted to a JPEG.
+This can be done with the <tt>pnmtojpeg</tt> program at the command
+line as follows: <tt>pnmtojpeg input-file.ppm > output-file.jpg</tt>.
+This program comes with many Linux distributions as well as
+with Cygwin for Windows; it is also installed on the SEAS Unix
+machines.  If you don't already have it, you can download
+<tt>pnmtojpeg</tt> as part of the <a href="http://netpbm.sourceforge.net">NetPBM</a> library.  (The library also includes the program <tt>jpegtopnm</tt> for converting JPEGs into the  <tt>ppm</tt> format; you can use this program to convert your favorite images so they can be manipulated by your code.)
+
+<p>
+Now on to the assignment!  The file <tt>hw5.java</tt> includes three classes that are relevant for all problems (and one class that will be discussed later):
+
+<ul>
+  <li><tt>ImplementMe</tt> is an exception that is used to mark places in the code that are currently
+  unimplemented and need something from you.</li>
+
+<p>  <li><tt>RGB</tt> objects each represent an RGB (red, green, blue) triple, which constitutes the color values for a single pixel.  
+We're using such objects essentially just as
+  tuples (which Java lacks), so the fields are public for easy access.</li>
+
+<p><li><tt>PPMImage</tt> represents a PPM image.  I've
+provided the functionality for parsing and unparsing PPM image files (one of the constructors performs parsing, and <tt>toFile</tt> performs unparsing).  Each <tt>PPMImage</tt> object includes integers that specify the image's width and height (in terms of the number of pixels) as well as the maximum value of any color (typically 256, but not always).  Finally, the pixels themselves are represented by an array of <tt>RGB</tt> objects, which contains all <tt>width * height</tt> pixels contiguously, going row-by-row through the image from the top down, and from left to right in each row.
+</li></ul>
+
+<p>Your job is to implement the
+methods <tt>negate</tt>, <tt>greyscale</tt>, <tt>mirrorImage</tt>,
+<tt>mirrorImage2</tt>, and <tt>gaussianBlur</tt> in the <tt>PPMImage</tt> class.
+Here are the implementation requirements for your five methods:
+
+<ol><li>All five methods should be <i>side-effect-free</i>, returning a new <tt>PPMImage</tt> object and leaving
+the old one unchanged.</li>
+
+<p><li>Some methods will use Java streams, while others will use the Java fork-join framework, so pay close attention to the details below.</li>
+
+<p><li>Implement the <tt>negate</tt> method, which produces the color negative of a given image (see the second Florence image above).  To create the color negative of an image, simply replace each color value <tt>v</tt> within each pixel with <tt>max-v</tt>, where <tt>max</tt> is the image's maximum color value.
+
+<p><b>The <tt>negate</tt> method should achieve parallelism using a
+  parallel stream.</b>  This is
+  quite natural because each pixel can be visited once in order to
+  perform the negation.  The <tt>Arrays</tt> class has a static method
+  that can convert an array into a sequential <tt>Stream</tt>, and then you can
+  invoke various stream operations to make the stream parallel,
+  perform the computation you desire, and convert the result back to
+  an array.  The parallel execution is over the array of pixels, but
+  your <tt>negate</tt> method should ultimately produce a new <tt>PPMImage</tt>.
+</li><p>
+
+<li>Implement the method <tt>greyscale</tt>, which produces a greyscale version of a given image (see the third Florence image above).  To do this, you intuitively want to average each pixel's R, G, and B values to produce a new value that all three should be replaced with.  However, in practice the following formula tends to produce more pleasing pictures, so you should use it instead to produce the new color value:  <tt>.299 * R + .587 * G + .114 * B</tt> <br>
+You should round the resulting value to the nearest integer (see the <tt>Math.round</tt> method).  As in the previous problem, <b>achieve parallelism using a parallel stream</b>.</li>
+
+<p><li>Implement the <tt>mirrorImage</tt> method, which produces the mirror image of a given image (see the fourth Florence image above).
+This method is not as natural a candidate for streaming, because it needs to reorder pixels.
+Nonetheless, the transformation is naturally
+parallelizable since each pixel can be transformed in isolation.
+ <b>Use Java's fork-join framework in
+order to exploit parallelism for this method, rather than using streams.</b>
+You should experiment with different partitioning schemes and sequential cutoff values.  You may not see big speedups, though, due to the limited computation being done for each pixel.</li> 
+
+<p><li>It turns out that streams are expressive enough to handle
+<tt>mirrorImage</tt>.
+Illustrate this by implementing <tt>mirrorImage2</tt>, which should
+have identical behavior to <tt>mirrorImage</tt> but <b>use only
+streaming operations, with no explicit parallelism</b>.  <i>Hint: One way
+to do this is to use <tt>IntStream.range</tt> to generate a stream of
+integers, one per pixel, and then use other stream operations to process these
+integers in parallel.</i></li>
+
+<p><li>Finally, implement the method <tt>gaussianBlur</tt>, which blurs an image
+using a Gaussian filter (see the fifth Florence image above).  The blurring replaces each pixel's value
+with a kind of average of the pixel values surrounding it in the
+image.  How this is done is determined by the Gaussian
+filter, which is produced by the <tt>Gaussian.gaussianFilter</tt> method that I've provided.
+
+<p>A Gaussian filter is a square matrix, represented as a 2D array of doubles,
+of size <tt>2*radius+1</tt> by <tt>2*radius+1</tt> where
+<tt>radius</tt> is a parameter to the method.  
+The other parameter, <tt>sigma</tt>,
+is a double that determines the values in the filter.
+You can experiment with different values for each parameter.
+
+<p>Given such a filter, you create the new value for a pixel's RGB triple by conceptually placing that pixel at the center of the filter.  Then the new value for the pixel's R value, for example, is produced by summing the contribution from each R value covered by the filter, with each such value scaled by the filter.  For example, consider this filter (resulting from the call <tt>gaussianFilter(1, 2.0)</tt>):
+<pre>
+[[0.1018680644198163, 0.11543163961422663, 0.1018680644198163],
+ [0.11543163961422663, 0.1308011838638283, 0.11543163961422663],
+ [0.1018680644198163, 0.11543163961422663, 0.1018680644198163]]
+</pre>
+
+Then the blurred R value at row <tt>i</tt> and column <tt>j</tt>, which we'll denote <tt>R[i][j]</tt> is computed as follows, rounded to the nearest integer:
+
+<pre>
+0.1018680644198163 * R[i-1][j-1] + 0.11543163961422663 * R[i-1][j] + 0.1018680644198163 * R[i-1][j+1] +
+0.11543163961422663 * R[i][j-1] + 0.1308011838638283 * R[i][j] + 0.11543163961422663 * R[i][j+1] +
+0.1018680644198163 * R[i+1][j-1] + 0.11543163961422663 * R[i+1][j] + 0.1018680644198163 * R[i+1][j+1]
+</pre>
+
+You should use a <i>clamping</i> semantics to handle situations when this
+calculation would take you out of bounds of the image.  Specifically,
+whenever this process requires accessing a pixel whose row (column) is out of bounds, that row (column) should be substituted with the closest row (column) that is in bounds.  For example, if the pixel at row -1 and column 1 is required, you'd instead use the pixel at row 0 and column 1, and if the pixel at row -1 and column -2 is required, you'd instead use the pixel at row 0 and column 0.  Similarly, if the pixel at row 100 is required but the image has height 96, then you'd instead use the row value 95.
+
+<p>Though it can be implemented with Java streams, similar to what you did in the previous problem for the mirror image, Gaussian blur is not a natural candidate for that approach, since the values for one pixel depend on the values of its neighbors.  Therefore, instead <b>implement this method using Java's fork-join framework</b>. You
+should experiment with different ways of partitioning the problem
+and different sequential thresholds. The Gaussian blur performs non-trivial computation per pixel (especially for large radius values, e.g. 60), so you should be able to achieve significant speedups versus a sequential implementation when running on multicore hardware.
+</li>
+
+
+</ol>
+
+
+
+</body></html>
