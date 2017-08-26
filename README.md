@@ -4,6 +4,7 @@ Programming language: Java
 
 CS 131, Spring 2016
 
+### Description
 Processing large images can quickly become computation-intensive. Fortunately, many image transformations are naturally parallelizable, since each pixel (or groups of a small number of pixels) can often be processed independently. This parallel image processing can process image in parallel. The features includes: negate, greyscale, mirror image, and Gaussian blur
 
 ### To process the image:
