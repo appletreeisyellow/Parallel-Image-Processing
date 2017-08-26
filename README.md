@@ -1,8 +1,4 @@
-# hw5
-
-CS 131
-
-Spring 2016
+# Parallel Image Processing
 
 Programming language: java
 
@@ -24,6 +20,7 @@ Programming language: java
  java Main
  ```
  5. Now you can see the processed images
+ 
  
 ### How to open PPM Images
 
