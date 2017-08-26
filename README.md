@@ -1,6 +1,7 @@
 # Parallel Image Processing
 
 Programming language: java
+CS 131, Spring 2016
 
 ### To process the image:
  1. Clone this repo
