@@ -375,7 +375,7 @@ class Gaussian {
     }
 }
 
-/*
+
 // Test
 class Main {
 	public static void main(String[] args) throws FileNotFoundException, IOException {
@@ -398,6 +398,6 @@ class Main {
 		gaussian.toFile("florence_gaussian.ppm"); 	
 	}
 
-}*/
+}
 
 
