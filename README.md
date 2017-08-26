@@ -1,6 +1,7 @@
 # Parallel Image Processing
 
 Programming language: java
+
 CS 131, Spring 2016
 
 ### To process the image:
@@ -21,6 +22,8 @@ CS 131, Spring 2016
  java Main
  ```
  5. Now you can see the processed images
+ 
+ 
  
  
 ### How to open PPM Images
